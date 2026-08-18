@@ -177,3 +177,105 @@ Notas de seguridad:
 - Si más adelante restringes el `subject` de la federated credential a un
   `environment` de GitHub con reglas de aprobación manual, tendrás una
   protección extra antes de desplegar a producción.
+
+## 8. Cómo probarlo en la vida real (end-to-end)
+
+Checklist antes de empezar: Function App desplegada (sección 4),
+`skill-package/skill.json` con el endpoint real (no el placeholder) y, si vas
+a usar el pipeline, los secretos/variables de la sección 7 ya configurados.
+
+### 8.1 Dar de alta el skill en el Alexa Developer Console
+
+Si aún no existe el skill ahí (solo hemos tocado el código, no el registro
+en Amazon):
+
+1. Instala la [ASK CLI](https://www.npmjs.com/package/ask-cli): `npm install -g ask-cli`.
+2. `ask configure` (te pedirá login con tu cuenta de Amazon developer y crea
+   un perfil).
+3. Desde la raíz del repo: `ask deploy` — esto crea el skill a partir de
+   `skill-package/` (manifiesto + modelo de interacción) y lo asocia a un
+   `skillId` nuevo (se guarda en `.ask/`, no lo subas si contiene IDs que
+   prefieras mantener privados, aunque no son secretos).
+4. Alternativa sin CLI: crea el skill manualmente en
+   https://developer.amazon.com/alexa/console/ask, pega el contenido de
+   `skill-package/skill.json` en el JSON Editor del manifiesto y el de
+   `interactionModels/custom/es-ES.json` en el JSON Editor del modelo de
+   interacción (pestaña Build → Interaction Model → JSON Editor), y en
+   Endpoint marca HTTPS con tu URL de la Function App.
+
+### 8.2 Comprobación rápida del backend (antes de meter a Alexa)
+
+El endpoint verifica firma/timestamp de Alexa (`verifySignatureAndTimestamp`),
+así que un `curl` normal **debe fallar** — eso es la prueba de que la
+verificación de seguridad está activa, no un fallo:
+
+```bash
+curl -i -X POST https://<tu-function-app>.azurewebsites.net/api/alexa/skill \
+  -H "Content-Type: application/json" -d '{}'
+# Esperado: 401/400 (falta la firma). Un 500 o "no se conecta" sí indica un problema real.
+```
+
+Para ver logs en vivo mientras pruebas desde el simulador o un dispositivo:
+
+```bash
+func azure functionapp logstream --name <tu-function-app> --resource-group rg-alexa-caracol
+# o Azure Portal → tu Function App → Log stream / Application Insights → Live metrics
+```
+
+### 8.3 Probar en el simulador del Developer Console
+
+1. Pestaña **Test** → activa el desplegable a "Development" (los skills sin
+   publicar solo son testeables en este modo).
+2. Escribe utterances de texto, por ejemplo:
+   - "abre radio en directo"
+   - "pon Caracol Radio Bogotá"
+   - "pausa" / "reanuda"
+3. Revisa el panel derecho (JSON Input/Output): debe aparecer una directiva
+   `AudioPlayer.Play` con la URL del stream. El simulador web a veces no
+   reproduce audio en directo indefinido de forma fiable — si no suena ahí,
+   no es necesariamente un fallo del skill (ver 8.4).
+
+### 8.4 Probar en un dispositivo Alexa real (la prueba que más importa)
+
+1. El dispositivo (o la app oficial de Alexa) debe estar conectado con la
+   **misma cuenta de Amazon** que usaste en `ask configure` / el Developer
+   Console. No hace falta publicar el skill: en modo "Development" ya está
+   disponible automáticamente en tus propios dispositivos.
+2. Di: "Alexa, abre radio en directo" y luego "pon Caracol Radio Bogotá" (o
+   invócalo todo junto: "Alexa, pide a radio en directo que ponga Caracol
+   Radio Bogotá").
+3. Comprueba pausa/reanudar y que al decir "para" se detenga limpiamente.
+4. Si Alexa responde "hubo un problema con la skill solicitada", el fallo
+   está casi siempre en el endpoint (mira los logs de 8.2) o en el manifiesto
+   (endpoint mal apuntado, certificado no válido).
+
+### 8.5 Probar el pipeline de CI/CD de extremo a extremo
+
+1. Confirma que los secretos/variables de la sección 7 están puestos:
+   `gh secret list --repo luisgizirian/alexa-caracol` y
+   `gh variable list --repo luisgizirian/alexa-caracol`.
+2. Haz un cambio trivial dentro de `azure-function/` (p. ej. un comentario) y
+   haz push a `main`.
+3. Sigue la ejecución del workflow:
+   ```bash
+   gh run watch --repo luisgizirian/alexa-caracol
+   # o: gh run list --workflow=deploy.yml --repo luisgizirian/alexa-caracol
+   ```
+4. Si falla, revisa el log del paso concreto con `gh run view --log --repo luisgizirian/alexa-caracol`.
+5. Repite el smoke test de 8.2 (o vuelve a probar por voz) para confirmar
+   que la Function App desplegada responde con el cambio nuevo.
+
+### 8.6 Problemas típicos
+
+- **401/403 constante desde Alexa real pero el `curl` de 8.2 da el mismo
+  error esperado**: revisa que el certificado de `*.azurewebsites.net` sea
+  válido (lo es por defecto en Azure) y que el reloj del servidor esté
+  sincronizado (la verificación de timestamp tolera ~150s de diferencia).
+- **AudioPlayer no reproduce nada pero no hay error**: la URL del stream no
+  es HTTPS, no es un formato soportado (MP3/AAC) o el servidor de streaming
+  hace redirects que Alexa no sigue bien — prueba la URL directamente en un
+  navegador o `curl -I` para confirmar que responde 200 con
+  `Content-Type: audio/...`.
+- **Funciona en el simulador pero no en el dispositivo (o al revés)**: es un
+  falso negativo conocido del simulador web con streams en directo; confía
+  más en la prueba con dispositivo real (8.4).
