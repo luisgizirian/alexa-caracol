@@ -31,7 +31,7 @@ jobs:
 
       - name: Install production dependencies
         working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-        run: npm install --omit=dev
+        run: npm ci --omit=dev
 
       - name: Azure login (OIDC federated credential)
         uses: azure/login@v2
