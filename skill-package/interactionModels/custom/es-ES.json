@@ -1,0 +1,81 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "radio en directo",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.PauseIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.ResumeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "ReproducirEmisoraIntent",
+          "slots": [
+            {
+              "name": "emisora",
+              "type": "EMISORA"
+            }
+          ],
+          "samples": [
+            "pon {emisora}",
+            "pon la emisora {emisora}",
+            "reproduce {emisora}",
+            "escuchar {emisora}",
+            "quiero escuchar {emisora}",
+            "abre {emisora}",
+            "sintoniza {emisora}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "EMISORA",
+          "values": [
+            {
+              "id": "caracol-bogota",
+              "name": {
+                "value": "Caracol Radio Bogotá",
+                "synonyms": [
+                  "Caracol Radio",
+                  "Caracol",
+                  "Caracol Bogotá",
+                  "la Caracol"
+                ]
+              }
+            },
+            {
+              "id": "rac1",
+              "name": {
+                "value": "RAC1",
+                "synonyms": [
+                  "RAC uno",
+                  "RAC1 Barcelona",
+                  "la RAC1"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

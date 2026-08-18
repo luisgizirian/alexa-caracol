@@ -1,0 +1,35 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "es-ES": {
+          "name": "Radio en Directo Caracol RAC1",
+          "summary": "Escucha Caracol Radio Bogotá y RAC1 Barcelona en directo",
+          "examplePhrases": [
+            "Alexa, abre radio en directo",
+            "Alexa, pon Caracol Radio Bogotá",
+            "Alexa, pon RAC1"
+          ],
+          "description": "Skill de audio en directo para escuchar Caracol Radio Bogotá y RAC1 Barcelona."
+        }
+      },
+      "isAvailableWorldwide": false,
+      "testingInstructions": "Di 'pon Caracol Radio Bogotá' o 'pon RAC1'.",
+      "category": "MUSIC_AND_AUDIO",
+      "distributionCountries": ["ES", "CO"]
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "https://REEMPLAZA-CON-TU-FUNCTION-APP.azurewebsites.net/api/alexa/skill"
+        },
+        "interfaces": [
+          {
+            "type": "AUDIO_PLAYER"
+          }
+        ]
+      }
+    },
+    "manifestVersion": "1.0"
+  }
+}
